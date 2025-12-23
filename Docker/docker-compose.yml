@@ -1,0 +1,43 @@
+# WARNING: 'name' is the label of compose project, which is different container name and must be different for different container
+# WARNING:  otherwise the containers with same compose project will be recreated.
+name: ${PROJECT_NAME}
+
+services:
+  gdino:
+    image: ${PROJECT_NAME}:latest
+    container_name: ${PROJECT_NAME}
+    networks:
+      - ${WANDB_NETWORK}
+    restart: unless-stopped
+    ports:
+      - "24524:7860"
+    environment:
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      DATASETS_OFFLINE: "1"
+      GRADIO_SERVER_NAME: 0.0.0.0
+      WANDB_BASE_URL: http://${WANDB_CONTAINER}:8080
+      WANDB_API_KEY: ${WANDB_KEY}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ${APP_DIR}:/workspace/app:rw
+      - ${MODELS_DIR}:/models:ro
+      - ${DATA_DIR}:/datasets:ro
+      - ${CACHE_DIR}:/opt/hf:rw
+      - /workspace/zyf/gdino/VS3_CVPR23:/workspace/VS3_CVPR23:rw
+      - /workspace/datasets/vg/VG_100K:/workspace/VS3_CVPR23/data/VG150/VG_100K:ro
+    working_dir: /workspace/VS3_CVPR23
+    command: ["bash","-lc","tail -f /dev/null"]
+    tty: true
+    stdin_open: true
+    shm_size: '2gb'
+
+networks:
+  wandb-net:
+    external: true
